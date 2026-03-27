@@ -72,6 +72,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         Vector3 movement = new Vector3(moveInput.x, moveInput.y, 0) * _moveSpeed * Time.deltaTime;
-        transform.Translate(movement);
+        //transform.Translate(movement);
+        transform.position += movement;
     }
 }
