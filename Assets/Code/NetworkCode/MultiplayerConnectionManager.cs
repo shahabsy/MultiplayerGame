@@ -43,6 +43,7 @@ public class MultiplayerConnectionManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private async void Start()
     {
+        _cts = new CancellationTokenSource();
         await InitializeServices();
         SetupUI();
         SetupNetworkCallbacks();
@@ -63,6 +64,7 @@ public class MultiplayerConnectionManager : MonoBehaviour
         catch (System.Exception e)
         {
             Debug.LogError(e);
+            UpdateStatus($"Error: {e.Message}");
         }
     }
 
@@ -83,9 +85,7 @@ public class MultiplayerConnectionManager : MonoBehaviour
         NetworkManager.Singleton.OnServerStopped += OnServerStopped;
     }
 
-    private async 
-    Task
-RefreshLobbies()
+    private async Task RefreshLobbies()
     {
         UpdateStatus("Searching for lobbies...");
         ClearLobbyList();
@@ -231,8 +231,9 @@ RefreshLobbies()
 
         GameObject buttonObj = Instantiate(_lobbyButtonPrefab, _lobbyListContainer).gameObject;
 
-        TMP_Text buttonText = buttonObj.GetComponent<TMP_Text>();
         Button button = buttonObj.GetComponent<Button>();
+        TMP_Text buttonText = buttonObj.GetComponentInChildren<TMP_Text>();
+        if (buttonText == null) buttonText = buttonObj.GetComponent<TMP_Text>();
 
         string joinCode = lobby.Data != null && lobby.Data.ContainsKey("joinCode")
             ? lobby.Data["joinCode"].Value
@@ -275,7 +276,7 @@ RefreshLobbies()
     {
         foreach (var button in _lobbyButtons)
         {
-            Destroy(button);
+            if (button != null) { Destroy(button); }
         }
         _lobbyButtons.Clear();
     }
@@ -386,7 +387,13 @@ RefreshLobbies()
 
     private void OnDestroy()
     {
-        _cts.Cancel();
+        // Cancel background tasks
+        if (_cts != null)
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+            _cts = null;
+        }
         if (_currentLobby != null && _isHosting)
         {
             try
