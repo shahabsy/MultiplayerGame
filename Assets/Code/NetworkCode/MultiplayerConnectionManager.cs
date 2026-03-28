@@ -167,15 +167,13 @@ public class MultiplayerConnectionManager : MonoBehaviour
                 IsPrivate = false,
                 Data = new Dictionary<string, DataObject>
                 {
-                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Member, joinCode) }
+                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) }
                 }
             };
 
             _currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, _maxPlayers, options);
 
-            //StartCoroutine(HeartbeatRoutine());
             _ = HeartbeatLoop(_cts.Token);
-            //StartCoroutine(UpdateLobbyPlayersRoutine());
             _ = UpdateLobbyPlayersLoop(_cts.Token);
 
             Debug.Log($"Lobby created: {_currentLobby.Id}");
@@ -237,11 +235,15 @@ public class MultiplayerConnectionManager : MonoBehaviour
 
         string joinCode = lobby.Data != null && lobby.Data.ContainsKey("joinCode")
             ? lobby.Data["joinCode"].Value
-            : "No code";
-
-        buttonText.text = $"{lobby.Name} ({lobby.Players.Count}/{lobby.MaxPlayers})";
+            : null;
+        if(string.IsNullOrEmpty(joinCode))
+        {
+            Debug.LogWarning($"Lobby '{lobby.Name}' has no join code, cannot join.");
+            buttonText.text = $"{lobby.Name} ({lobby.Players.Count}/{lobby.MaxPlayers}) - [NO CODE]";
+            button.interactable = false;
+            return;
+        }
         button.onClick.AddListener(() => JoinWithCodeFromLobby(joinCode));
-
         _lobbyButtons.Add(buttonObj);
     }
 
