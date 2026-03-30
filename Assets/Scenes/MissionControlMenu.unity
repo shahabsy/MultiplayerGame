@@ -2064,7 +2064,6 @@ GameObject:
   m_Component:
   - component: {fileID: 590986783}
   - component: {fileID: 590986785}
-  - component: {fileID: 590986784}
   m_Layer: 0
   m_Name: MissionControlMenuSceneLogic
   m_TagString: Untagged
@@ -2087,29 +2086,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &590986784
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 590986782}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f28d7d069e7cf449875e786472e5ce1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MultiplayerConnectionManager
-  _lobbyNameInput: {fileID: 0}
-  _joinCodeInput: {fileID: 0}
-  _hostButton: {fileID: 0}
-  _joinButton: {fileID: 0}
-  _refreshButton: {fileID: 0}
-  _joinCodeDisplayText: {fileID: 0}
-  _statusText: {fileID: 0}
-  _playerCountText: {fileID: 0}
-  _lobbyListContainer: {fileID: 0}
-  _lobbyButtonPrefab: {fileID: 0}
-  _maxPlayers: 2
 --- !u!114 &590986785
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2124,7 +2100,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MissionControlMenuScene
   CreateGameBtn: {fileID: 180340381}
   JoinGameBtn: {fileID: 1282350451}
-  _multiplayerConnectionManager: {fileID: 590986784}
+  MultiplayerManager: {fileID: 1863973465}
 --- !u!1 &620033990
 GameObject:
   m_ObjectHideFlags: 0
@@ -4045,6 +4021,51 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &1863973464
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1863973466}
+  - component: {fileID: 1863973465}
+  m_Layer: 0
+  m_Name: MultiplayerConnectionManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1863973465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863973464}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f28d7d069e7cf449875e786472e5ce1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MultiplayerConnectionManager
+  _maxPlayers: 2
+--- !u!4 &1863973466
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863973464}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 853.856, y: 512.04364, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1953099825
 GameObject:
   m_ObjectHideFlags: 0
@@ -5192,4 +5213,5 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 590986783}
+  - {fileID: 1863973466}
   - {fileID: 754722747}

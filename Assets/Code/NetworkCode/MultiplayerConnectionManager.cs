@@ -35,6 +35,8 @@ public class MultiplayerConnectionManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private async void Start()
     {
+        DontDestroyOnLoad(gameObject);
+
         _cts = new CancellationTokenSource();
         await InitializeServices();
         SetupNetworkCallbacks();
