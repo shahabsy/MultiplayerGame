@@ -513,7 +513,7 @@ GameObject:
   - component: {fileID: 2554902844500386025}
   - component: {fileID: 3351954417912082074}
   m_Layer: 5
-  m_Name: PlayerThumbnail
+  m_Name: PlayerListItemPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

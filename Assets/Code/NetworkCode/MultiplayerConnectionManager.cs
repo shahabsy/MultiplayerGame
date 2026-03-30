@@ -254,7 +254,7 @@ public class MultiplayerConnectionManager : MonoBehaviour
     {
         if (NetworkManager.Singleton.IsServer)
         {
-            UpdateStatus($"Player joined! Total: {NetworkManager.Singleton.ConnectedClients.Count}/{_maxPlayers}");
+            UpdateStatus($"Player {clientId} joined! Total: {NetworkManager.Singleton.ConnectedClients.Count}/{_maxPlayers}");
         }
         else
         {
