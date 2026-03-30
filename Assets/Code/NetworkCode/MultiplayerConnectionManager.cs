@@ -18,26 +18,18 @@ using UnityEngine.UI;
 
 public class MultiplayerConnectionManager : MonoBehaviour
 {
-    [Header("UI References")]
-    [SerializeField] private TMP_InputField _lobbyNameInput;
-    [SerializeField] private TMP_InputField _joinCodeInput;
-    [SerializeField] private Button _hostButton;
-    [SerializeField] private Button _joinButton;
-    [SerializeField] private Button _refreshButton;
-    [SerializeField] private TMP_Text _joinCodeDisplayText;
-    [SerializeField] private TMP_Text _statusText;
-    [SerializeField] private TMP_Text _playerCountText;
-    [SerializeField] private Transform _lobbyListContainer;
-    [SerializeField] private Transform _lobbyButtonPrefab;
-
     [Header("Settings")]
     [SerializeField] private int _maxPlayers = 2;
+
+    // Events for game logic
+    public event Action OnHostStarted;
+    public event Action OnClientJoined;
+    public event Action<string> OnJoinCodeReceived;
 
     private string _playerId;
     private Lobby _currentLobby;
     private Allocation _hostAllocation;
     private bool _isHosting = false;
-    private List<GameObject> _lobbyButtons = new List<GameObject>();
     private CancellationTokenSource _cts;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -45,9 +37,13 @@ public class MultiplayerConnectionManager : MonoBehaviour
     {
         _cts = new CancellationTokenSource();
         await InitializeServices();
-        SetupUI();
         SetupNetworkCallbacks();
         UpdateStatus("Ready. Host a game or enter join code.");
+    }
+
+    private void UpdateStatus(string message)
+    {
+        Debug.Log(message);
     }
 
     private async Task InitializeServices()
@@ -68,13 +64,6 @@ public class MultiplayerConnectionManager : MonoBehaviour
         }
     }
 
-    private void SetupUI()
-    {
-        if (_hostButton != null) { _hostButton.onClick.AddListener(HostGame); }
-        if (_joinButton != null) { _joinButton.onClick.AddListener(JoinWithCode); }
-        if (_refreshButton != null) { _refreshButton.onClick.AddListener(async () => await RefreshLobbies()); }
-    }
-
     private void SetupNetworkCallbacks()
     {
         if (NetworkManager.Singleton == null) { return; }
@@ -82,49 +71,15 @@ public class MultiplayerConnectionManager : MonoBehaviour
         NetworkManager.Singleton.OnServerStarted += OnServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+        
         NetworkManager.Singleton.OnServerStopped += OnServerStopped;
     }
 
-    private async Task RefreshLobbies()
-    {
-        UpdateStatus("Searching for lobbies...");
-        ClearLobbyList();
-
-        try
-        {
-            QueryLobbiesOptions options = new QueryLobbiesOptions
-            {
-                Count = 20,
-                Filters = new List<QueryFilter>
-                {
-                    new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
-                }
-            };
-            QueryResponse response = await LobbyService.Instance.QueryLobbiesAsync(options);
-
-            foreach (Lobby lobby in response.Results)
-            {
-                AddLobbyToUI(lobby);
-            }
-
-            UpdateStatus($"Found {response.Results.Count} lobbies");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Failed to query lobbies: {e.Message}");
-            UpdateStatus($"Error: {e.Message}");
-        }
-    }
-
     #region Host Game
-    public async void HostGame()
+    public async void HostGame(string lobbyName = null)
     {
-        string lobbyName = _lobbyNameInput != null &&
-            !string.IsNullOrEmpty(_lobbyNameInput.text)
-            ? _lobbyNameInput.text : "Game Lobby";
-
+        string name = string.IsNullOrEmpty(lobbyName) ? "Game Lobby" : lobbyName.Trim();
         UpdateStatus($"Creating relay allocation...");
-        _hostButton.interactable = false;
 
         try
         {
@@ -142,24 +97,24 @@ public class MultiplayerConnectionManager : MonoBehaviour
             NetworkManager.Singleton.StartHost();
             _isHosting = true;
 
-            // step-5: display join code
-            if (_joinCodeDisplayText != null)
-            {
-                _joinCodeDisplayText.text = $"Join code: {joinCode}";
-            }
-
+            OnJoinCodeReceived?.Invoke(joinCode);
             await CreateLobbyInService(lobbyName, joinCode);
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Failed to host: {e.Message}");
             UpdateStatus($"Error: {e.Message}");
-            _hostButton.interactable = true;
         }
     }
 
     private async Task CreateLobbyInService(string lobbyName, string joinCode)
     {
+        if (string.IsNullOrWhiteSpace(lobbyName))
+        {
+            lobbyName = $"Lobby_{_playerId.Substring(0, 8)}";
+        }
+        lobbyName = lobbyName.Trim();
+
         try
         {
             CreateLobbyOptions options = new CreateLobbyOptions
@@ -177,6 +132,7 @@ public class MultiplayerConnectionManager : MonoBehaviour
             _ = UpdateLobbyPlayersLoop(_cts.Token);
 
             Debug.Log($"Lobby created: {_currentLobby.Id}");
+            OnHostStarted?.Invoke();
         } 
         catch (System.Exception e)
         {
@@ -186,73 +142,48 @@ public class MultiplayerConnectionManager : MonoBehaviour
     #endregion
 
     #region Join Game
-    public async void JoinWithCode()
+    public async void JoinFirstAvailableLobby()
     {
-        string joinCode = _joinCodeInput != null ? _joinCodeInput.text : "";
-
-        if (string.IsNullOrEmpty(joinCode))
-        {
-            UpdateStatus($"Please enter a join code!");
-            return;
-        }
-
-        UpdateStatus($"Joining with code: {joinCode}...");
-        _joinButton.interactable = false;
+        UpdateStatus("Searching for lobbies...");
 
         try
         {
-            // step-1: join Relay using join code
-            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            QueryLobbiesOptions options = new QueryLobbiesOptions
+            {
+                Count = 1,
+                Filters = new List<QueryFilter>
+                {
+                    new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
+                }
+            };
+            QueryResponse response = await LobbyService.Instance.QueryLobbiesAsync(options);
 
-            // step-2: configure unity transport with relay 
-            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-            transport.SetRelayServerData(AllocationUtils.ToRelayServerData(joinAllocation, "dtls"));
+            if (response.Results.Count == 0)
+            {
+                UpdateStatus("No available lobbies found.");
+                return;
+            }
 
-            // step-3: start client
-            NetworkManager.Singleton.StartClient();
-            UpdateStatus("Connected to host!");
+            Lobby lobby = response.Results[0];
+            string joinCode = lobby.Data != null && lobby.Data.ContainsKey("joinCode")
+                ? lobby.Data["joinCode"].Value
+                : null;
+
+            if (string.IsNullOrEmpty(joinCode))
+            {
+                Debug.LogWarning($"Lobby '{lobby.Name}' has no join code, cannot join.");
+                UpdateStatus($"Error: Lobby '{lobby.Name}' has no join code.");
+                return;
+            }
+            await JoinWithCodeAsync(joinCode);
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Failed to join: {e.Message}");
             UpdateStatus($"Error: Invalid join code or host not available");
-            _joinButton.interactable = true;
+            //_joinButton.interactable = true;
         }
     }
-    #endregion
-
-    #region Lobby Browser
-
-    private void AddLobbyToUI(Lobby lobby)
-    {
-        if (_lobbyButtonPrefab == null || _lobbyListContainer == null) return;
-
-        GameObject buttonObj = Instantiate(_lobbyButtonPrefab, _lobbyListContainer).gameObject;
-
-        Button button = buttonObj.GetComponent<Button>();
-        TMP_Text buttonText = buttonObj.GetComponentInChildren<TMP_Text>();
-        if (buttonText == null) buttonText = buttonObj.GetComponent<TMP_Text>();
-
-        string joinCode = lobby.Data != null && lobby.Data.ContainsKey("joinCode")
-            ? lobby.Data["joinCode"].Value
-            : null;
-        if(string.IsNullOrEmpty(joinCode))
-        {
-            Debug.LogWarning($"Lobby '{lobby.Name}' has no join code, cannot join.");
-            buttonText.text = $"{lobby.Name} ({lobby.Players.Count}/{lobby.MaxPlayers}) - [NO CODE]";
-            button.interactable = false;
-            return;
-        }
-        button.onClick.AddListener(() => JoinWithCodeFromLobby(joinCode));
-        _lobbyButtons.Add(buttonObj);
-    }
-
-    private async void JoinWithCodeFromLobby(string joinCode)
-    {
-        _joinCodeInput.text = joinCode;
-        await JoinWithCodeAsync(joinCode);
-    }
-
     private async Task JoinWithCodeAsync(string joinCode)
     {
         UpdateStatus($"Joining lobby with code: {joinCode}...");
@@ -272,15 +203,6 @@ public class MultiplayerConnectionManager : MonoBehaviour
             Debug.LogError($"Failed to join: {e.Message}");
             UpdateStatus($"Error: {e.Message}");
         }
-    }
-
-    private void ClearLobbyList()
-    {
-        foreach (var button in _lobbyButtons)
-        {
-            if (button != null) { Destroy(button); }
-        }
-        _lobbyButtons.Clear();
     }
     #endregion
 
@@ -309,25 +231,12 @@ public class MultiplayerConnectionManager : MonoBehaviour
             try
             {
                 _currentLobby = await LobbyService.Instance.GetLobbyAsync(_currentLobby.Id);
-                UpdatePlayerCount();
             }
             catch (System.Exception e)
             {
                 Debug.LogError($"Failed to update lobby: {e.Message}");
             }
             await Task.Delay(5000, token);
-        }
-    }
-
-    private void UpdatePlayerCount()
-    {
-        if (_playerCountText != null && _currentLobby != null)
-        {
-            _playerCountText.text = $"Players: {_currentLobby.Players.Count}/{_currentLobby.MaxPlayers}";
-        }
-        else if (_playerCountText != null && NetworkManager.Singleton != null)
-        {
-            _playerCountText.text = $"Players: {NetworkManager.Singleton.ConnectedClients.Count}/{_maxPlayers}";
         }
     }
     #endregion
@@ -344,12 +253,11 @@ public class MultiplayerConnectionManager : MonoBehaviour
         if (NetworkManager.Singleton.IsServer)
         {
             UpdateStatus($"Player joined! Total: {NetworkManager.Singleton.ConnectedClients.Count}/{_maxPlayers}");
-            UpdatePlayerCount();
         }
         else
         {
-            UpdateStatus("Connected to host!");
-            _joinButton.interactable = true;
+            UpdateStatus("Connected to host!"); 
+            OnClientJoined?.Invoke();
         }
     }
 
@@ -358,7 +266,6 @@ public class MultiplayerConnectionManager : MonoBehaviour
         if (NetworkManager.Singleton.IsServer)
         {
             UpdateStatus($"Player left. Players: {NetworkManager.Singleton.ConnectedClients.Count - 1}");
-            UpdatePlayerCount();
         }
         else
         {
@@ -370,22 +277,8 @@ public class MultiplayerConnectionManager : MonoBehaviour
     {
         _isHosting = false;
         UpdateStatus("Server stopped");
-        _hostButton.interactable = true;
-        _joinButton.interactable = true;
-
-        if (_refreshButton != null)
-            _refreshButton.interactable = true;
     }
     #endregion
-
-    private void UpdateStatus(string message)
-    {
-        if (_statusText != null)
-        {
-            _statusText.text = message;
-        }
-        Debug.Log($"[Multiplayer] {message}");
-    }
 
     private void OnDestroy()
     {
