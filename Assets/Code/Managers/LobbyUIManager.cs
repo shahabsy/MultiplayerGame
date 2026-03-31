@@ -23,6 +23,7 @@ public class LobbyUIManager : MonoBehaviour
     }
     private void Start()
     {
+        Debug.Log("LobbyUIManager: coroutine will subscrit to events.");
         StartCoroutine(InitializeLobbyUI());
     }
     private IEnumerator InitializeLobbyUI()
@@ -84,7 +85,6 @@ public class LobbyUIManager : MonoBehaviour
         Debug.Log($"LobbyUIManager: OnClientDisconnected Called");
         if (_thumbnails.TryGetValue(clientId, out var thumbnail))
         {
-            
             Destroy(thumbnail.gameObject);
             _thumbnails.Remove(clientId);
         }
@@ -106,6 +106,7 @@ public class LobbyUIManager : MonoBehaviour
             var clientId = lobbyPlayer.OwnerClientId;
             if (!_thumbnails.ContainsKey(clientId))
             {
+                Debug.Log("Creating thumbnail for clientId: " + clientId);
                 CreateThumbnailForPlayer(clientId, lobbyPlayer);   
             }
         }
@@ -113,12 +114,11 @@ public class LobbyUIManager : MonoBehaviour
 
     private void CreateThumbnailForPlayer(ulong clientId, LobbyPlayer lobbyPlayer)
     {
-        Debug.Log($"LobbyUIManager: Creating thumbnail for client {clientId}.");
         if (lobbyPlayer == null || _thumbnails.ContainsKey(clientId)) return;
 
         GameObject go = Instantiate(playerThumbnailPrefab, playerListContainer);
         var thumbnail = go.GetComponent<PlayerThumbnail>();
-        thumbnail.Init(lobbyPlayer, clientId);
+        thumbnail.Init(lobbyPlayer, clientId); 
         _thumbnails[clientId] = thumbnail;
     }
 
