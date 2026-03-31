@@ -28,8 +28,8 @@ public class LobbyUIManager : MonoBehaviour
     private IEnumerator InitializeLobbyUI()
     {
         yield return new WaitUntil(() => NetworkManager.Singleton != null && NetworkManager.Singleton.IsConnectedClient);
-
-        yield return new WaitUntil(() => NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId) != null);
+        
+        yield return new WaitUntil(() => FindLocalLobbyPlayer() != null);
 
         Debug.Log("LobbyUIManager: Network ready, subscriting to events.");
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
@@ -38,17 +38,44 @@ public class LobbyUIManager : MonoBehaviour
         RefreshAllThumbnails();
     }
 
+    private LobbyPlayer FindLocalLobbyPlayer()
+    {
+        var players = FindObjectsByType<LobbyPlayer>(FindObjectsSortMode.None);
+        foreach (var p in players)
+        {
+            if (p.IsOwner) return p;
+        }
+        return null;
+    }
+
     private void OnClientConnected(ulong clientId)
     {
         Debug.Log($"LobbyUIManager: OnClientConnected Called");
-        var playerObject = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId);
-        if (playerObject != null)
+        StartCoroutine(AddThumbnailAfterSpawn(clientId));
+    }
+
+    private IEnumerator AddThumbnailAfterSpawn(ulong clientId)
+    {
+        yield return null;
+        
+        LobbyPlayer lobbyPlayer = null;
+        var players = FindObjectsByType<LobbyPlayer>(FindObjectsSortMode.None);
+        foreach (var p in players)
         {
-            var lobbyPlayer = playerObject.GetComponent<LobbyPlayer>();
-            if ( lobbyPlayer != null)
+            if (p.OwnerClientId == clientId)
             {
-                CreateThumbnailForPlayer(clientId, lobbyPlayer);
+                lobbyPlayer = p;
+                break;
             }
+        }
+
+        if (lobbyPlayer != null)
+        {
+            CreateThumbnailForPlayer(clientId, lobbyPlayer);
+        }
+        else
+        {
+            Debug.LogWarning($"LobbyUIManager: Could not find LobbyPlayer for client {clientId} after connection.");
         }
     }
 
@@ -65,24 +92,21 @@ public class LobbyUIManager : MonoBehaviour
 
     private void RefreshAllThumbnails()
     {
-        if (NetworkManager.Singleton == null)
-            return;
+        if (NetworkManager.Singleton == null) return;
 
         foreach (var kvp in _thumbnails)
-            Destroy(kvp.Value.gameObject);
+            if (kvp.Value != null) Destroy(kvp.Value.gameObject);
+
         _thumbnails.Clear();
 
-        foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        var lobbyPlayers = FindObjectsByType<LobbyPlayer>(FindObjectsSortMode.None);
+
+        foreach (var lobbyPlayer in lobbyPlayers)
         {
-            var playerObject = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId);
-            if (playerObject != null)
+            var clientId = lobbyPlayer.OwnerClientId;
+            if (!_thumbnails.ContainsKey(clientId))
             {
-                Debug.Log("RefreshAllThumbnails: Refreshing player thumbnails for all connected clients.");
-                var lobbyPlayer = playerObject.GetComponent<LobbyPlayer>();
-                if (lobbyPlayer != null)
-                {
-                    CreateThumbnailForPlayer(clientId, lobbyPlayer);
-                }
+                CreateThumbnailForPlayer(clientId, lobbyPlayer);   
             }
         }
     }
@@ -90,8 +114,7 @@ public class LobbyUIManager : MonoBehaviour
     private void CreateThumbnailForPlayer(ulong clientId, LobbyPlayer lobbyPlayer)
     {
         Debug.Log($"LobbyUIManager: Creating thumbnail for client {clientId}.");
-        if (lobbyPlayer == null) return;
-        if (_thumbnails.ContainsKey(clientId)) return;
+        if (lobbyPlayer == null || _thumbnails.ContainsKey(clientId)) return;
 
         GameObject go = Instantiate(playerThumbnailPrefab, playerListContainer);
         var thumbnail = go.GetComponent<PlayerThumbnail>();
