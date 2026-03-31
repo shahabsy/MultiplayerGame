@@ -52,8 +52,8 @@ public class LobbyUIManager : MonoBehaviour
         }
 
         Debug.Log("LobbyUIManager: InitializeLobbyUI.");
-        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+        //NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        //NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
 
         LobbyPlayer.OnPlayerSpawned += OnLobbyPlayerSpawned;
         LobbyPlayer.OnPlayerDespawned += OnLobbyPlayerDespawned;
@@ -190,8 +190,8 @@ public class LobbyUIManager : MonoBehaviour
         Debug.Log("LobbyUIManager: OnDestroy.");
         if (NetworkManager.Singleton != null)
         {
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
+            //NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            //NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
         }
 
         LobbyPlayer.OnPlayerSpawned -= OnLobbyPlayerSpawned;

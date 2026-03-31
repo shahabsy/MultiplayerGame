@@ -25,6 +25,7 @@ public class LobbyPlayer : NetworkBehaviour
         if (IsOwner)
         {
             PlayerName.Value = GameInstanceManager.Instance.CurrentPlayer.Name;
+            Debug.Log($"LobbyPlayer Name: {PlayerName.Value} for ClientId: {OwnerClientId}"); 
             IsReady.Value = false;
         }
         OnPlayerSpawned?.Invoke(this);
