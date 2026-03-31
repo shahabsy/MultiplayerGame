@@ -3,77 +3,55 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Services.Lobbies;
 using System;
+using Unity.Collections;
 
 public class PlayerThumbnail : MonoBehaviour
 {
-    public Image PlayerIcon;
+    public TextMeshProUGUI playerNameText;
+    public GameObject readyCheckmark;
+    private LobbyPlayer _lobbyPlayer;
+    private ulong _clientId;
 
-    public Image PlayerIconInactive;
-    public Image PlayerIconCheckmark;
-    public Button IconButton;
-    public TextMeshProUGUI playerLabel;
-
-    public Player DisplayedPlayer { get; set; }
-    private int m_Index;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private void Awake()
     {
-        if (IconButton != null)
+        
+    }
+
+    public void Init(LobbyPlayer lobbyPlayer, ulong clientId)
+    {
+        _lobbyPlayer = lobbyPlayer;
+        _clientId = clientId;
+
+        UpdateName(_lobbyPlayer.PlayerName.Value);
+        UpdateReady(_lobbyPlayer.IsReady.Value);
+
+        _lobbyPlayer.OnDataChanged += OnPlayerDataChanged;
+    }
+
+    private void OnPlayerDataChanged(ulong clientId)
+    {
+        if (clientId == _clientId)
         {
-            IconButton.onClick.AddListener(OnIconClicked);
+            UpdateName(_lobbyPlayer.PlayerName.Value);
+            UpdateReady(_lobbyPlayer.IsReady.Value);
         }
     }
 
-    public void InitDefaultData(int index)
+    private void UpdateName(FixedString32Bytes name)
     {
-        m_Index = index;
-        playerLabel.text = $"Player {index + 1}";
-
-        if (PlayerIcon != null)
-        {
-            PlayerIcon.gameObject.SetActive(false);
-        }
-        if (PlayerIconInactive != null)
-        {
-            PlayerIconInactive.gameObject.SetActive(true);
-        }
-        SetCheckmark(false);
-        playerLabel.gameObject.SetActive(true);
-        DisplayedPlayer = null;
+        playerNameText.text = name.ToString();
     }
 
-    public void InitPlayerThumbnail(Player player)
+    private void UpdateReady(bool ready)
     {
-        if (PlayerIcon != null) PlayerIcon.gameObject.SetActive(true);
-        if (PlayerIconInactive != null) PlayerIconInactive.gameObject.SetActive(false);
-
-        DisplayedPlayer = player;
-        UpdatePlayerThumbnailData();
-        playerLabel.gameObject.SetActive(false);
+        readyCheckmark.SetActive(ready);
     }
 
-    private void UpdatePlayerThumbnailData()
+    private void OnDestroy()
     {
-        if (playerLabel != null)        {
-            playerLabel.text = DisplayedPlayer?.Name ?? "Unknown";
-        }
-
-        SetCheckmark(DisplayedPlayer != null && DisplayedPlayer.IsReadyToStartGame);
-    }
-
-    private void SetCheckmark(bool ready)
-    {
-        if (PlayerIconCheckmark != null)
+        if (_lobbyPlayer != null)
         {
-            PlayerIconCheckmark.gameObject.SetActive(ready);
-        }
-    }
-
-    private void OnIconClicked()
-    {
-        if (DisplayedPlayer != null)
-        {
-            
+            _lobbyPlayer.OnDataChanged -= OnPlayerDataChanged;
         }
     }
 }
