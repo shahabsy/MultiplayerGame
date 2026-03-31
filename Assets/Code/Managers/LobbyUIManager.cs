@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -6,8 +7,8 @@ using UnityEngine;
 public class LobbyUIManager : MonoBehaviour
 {
     public static LobbyUIManager Instance;
-    public Transform playerListContainer;
-    public GameObject playerThumbnailPrefab;
+    [SerializeField] private Transform playerListContainer;
+    [SerializeField] private GameObject playerThumbnailPrefab;
 
     private Dictionary<ulong, PlayerThumbnail> _thumbnails = new Dictionary<ulong, PlayerThumbnail>();
 
@@ -22,13 +23,19 @@ public class LobbyUIManager : MonoBehaviour
     }
     private void Start()
     {
-        if (NetworkManager.Singleton != null)
-        {
-            Debug.Log("LobbyUIManager: Subscribing to network events.");
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-            NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
-            RefreshAllThumbnails();
-        }
+        StartCoroutine(InitializeLobbyUI());
+    }
+    private IEnumerator InitializeLobbyUI()
+    {
+        yield return new WaitUntil(() => NetworkManager.Singleton != null && NetworkManager.Singleton.IsConnectedClient);
+
+        yield return new WaitUntil(() => NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId) != null);
+
+        Debug.Log("LobbyUIManager: Network ready, subscriting to events.");
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+
+        RefreshAllThumbnails();
     }
 
     private void OnClientConnected(ulong clientId)
@@ -58,7 +65,6 @@ public class LobbyUIManager : MonoBehaviour
 
     private void RefreshAllThumbnails()
     {
-        Debug.Log("RefreshAllThumbnails: Refreshing player thumbnails for all connected clients.");
         if (NetworkManager.Singleton == null)
             return;
 
@@ -71,6 +77,7 @@ public class LobbyUIManager : MonoBehaviour
             var playerObject = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId);
             if (playerObject != null)
             {
+                Debug.Log("RefreshAllThumbnails: Refreshing player thumbnails for all connected clients.");
                 var lobbyPlayer = playerObject.GetComponent<LobbyPlayer>();
                 if (lobbyPlayer != null)
                 {
