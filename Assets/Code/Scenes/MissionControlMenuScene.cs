@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using Unity.Netcode;
 
 public class MissionControlMenuScene : MonoBehaviour
 {
@@ -57,11 +58,13 @@ public class MissionControlMenuScene : MonoBehaviour
 
     private void OnHostStarted()
     {
-        SceneManager.LoadScene("Lobby");
+        //SceneManager.LoadScene("Lobby");
+        NetworkManager.Singleton.SceneManager.LoadScene("Lobby", LoadSceneMode.Single);
     }
     private void OnClientJoined()
     {
-        SceneManager.LoadScene("Lobby");
+        //SceneManager.LoadScene("Lobby");
+        NetworkManager.Singleton.SceneManager.LoadScene("Lobby", LoadSceneMode.Single);
     }
 
     private void OnJoinCodeReceived(string joinCode)

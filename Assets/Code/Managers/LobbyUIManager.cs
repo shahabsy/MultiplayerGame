@@ -30,18 +30,57 @@ public class LobbyUIManager : MonoBehaviour
     {
         yield return new WaitUntil(() => NetworkManager.Singleton != null && NetworkManager.Singleton.IsConnectedClient);
         
-        yield return new WaitUntil(() => FindLocalLobbyPlayer() != null);
+        yield return new WaitForSeconds(0.5f); // Small delay to ensure all clients have spawned their LobbyPlayer
 
-        Debug.Log("LobbyUIManager: Network ready, subscriting to events.");
+        float startTime = Time.time;
+        const float timeout = 5f;
+        LobbyPlayer localPlayer = null;
+
+        while (Time.time - startTime < timeout)
+        {
+            localPlayer = FindLocalLobbyPlayer();
+            if (localPlayer != null) break;
+            yield return null;
+        }
+        if (localPlayer == null)
+        {
+            Debug.LogWarning("LobbyUIManager: Failed to find local LobbyPlayer within timeout.");
+            //yield break;
+        } else
+        {
+            Debug.Log("LobbyUIManager: Local LobbyPlayer found: " + localPlayer.PlayerName.Value);
+        }
+
+        Debug.Log("LobbyUIManager: InitializeLobbyUI.");
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
 
+        LobbyPlayer.OnPlayerSpawned += OnLobbyPlayerSpawned;
+        LobbyPlayer.OnPlayerDespawned += OnLobbyPlayerDespawned;
+
         RefreshAllThumbnails();
+
+        DumpCurrentLobbyPlayers("After InitializedLobbyUI subscription and RefreshAllThumbnails");
+    }
+
+    private void DumpCurrentLobbyPlayers(string v)
+    {
+        if (NetworkManager.Singleton == null) return;
+
+        ulong locaId = NetworkManager.Singleton.LocalClientId;
+        var players = FindObjectsByType<LobbyPlayer>(FindObjectsSortMode.None);
+
+        foreach(var p in players)
+        {
+            Debug.Log($"LobbyUIManager: {v} - Found LobbyPlayer: ClientId={p.OwnerClientId}, PlayerName={p.PlayerName.Value}, IsOwner={p.IsOwner}, IsReady={p.IsReady.Value}");
+        }
     }
 
     private LobbyPlayer FindLocalLobbyPlayer()
     {
+        Debug.Log("LobbyUIManager: FinalLocalLobbyPlayer.");
         var players = FindObjectsByType<LobbyPlayer>(FindObjectsSortMode.None);
+        ulong localId = NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalClientId : 0;
         foreach (var p in players)
         {
             if (p.IsOwner) return p;
@@ -57,6 +96,7 @@ public class LobbyUIManager : MonoBehaviour
 
     private IEnumerator AddThumbnailAfterSpawn(ulong clientId)
     {
+        Debug.Log("LobbyUIManager: addThumbnailAfterSpawn.");
         yield return null;
         
         LobbyPlayer lobbyPlayer = null;
@@ -92,6 +132,7 @@ public class LobbyUIManager : MonoBehaviour
 
     private void RefreshAllThumbnails()
     {
+        Debug.Log("LobbyUIManager: RefreshAllThumbnails.");
         if (NetworkManager.Singleton == null) return;
 
         foreach (var kvp in _thumbnails)
@@ -114,6 +155,7 @@ public class LobbyUIManager : MonoBehaviour
 
     private void CreateThumbnailForPlayer(ulong clientId, LobbyPlayer lobbyPlayer)
     {
+        Debug.Log("LobbyUIManager: CreateThumbnailForPlayer.");
         if (lobbyPlayer == null || _thumbnails.ContainsKey(clientId)) return;
 
         GameObject go = Instantiate(playerThumbnailPrefab, playerListContainer);
@@ -122,12 +164,37 @@ public class LobbyUIManager : MonoBehaviour
         _thumbnails[clientId] = thumbnail;
     }
 
+    private void OnLobbyPlayerSpawned(LobbyPlayer lobbyPlayer)
+    {
+        Debug.Log("LobbyUIManager: OnLobbyPlayerSpawned.");
+        if (lobbyPlayer == null) return;
+        var clientId = lobbyPlayer.OwnerClientId;
+        if (!_thumbnails.ContainsKey(clientId))
+        {
+            Debug.Log("OnLobbyPlayerSpawned: Creating thumbnail for clientId: " + clientId);
+            CreateThumbnailForPlayer(clientId, lobbyPlayer);
+        }
+    }
+
+    private void OnLobbyPlayerDespawned(ulong clientId)
+    {
+        Debug.Log("LobbyUIManager: OnLobbyPlayerDespawned.");
+        if (_thumbnails.TryGetValue(clientId, out var thumbnail))
+        {
+            Destroy(thumbnail.gameObject);
+            _thumbnails.Remove(clientId);
+        }
+    }
     public void OnDestroy()
     {
+        Debug.Log("LobbyUIManager: OnDestroy.");
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
         }
+
+        LobbyPlayer.OnPlayerSpawned -= OnLobbyPlayerSpawned;
+        LobbyPlayer.OnPlayerDespawned -= OnLobbyPlayerDespawned;
     }
 }

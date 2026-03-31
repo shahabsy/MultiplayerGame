@@ -11,6 +11,9 @@ public class LobbyPlayer : NetworkBehaviour
 
     public event Action<ulong> OnDataChanged;
 
+    public static event Action<LobbyPlayer> OnPlayerSpawned;
+    public static event Action<ulong> OnPlayerDespawned;
+
     private void Awake()
     {
         PlayerName.OnValueChanged += (_, _) => OnDataChanged?.Invoke(OwnerClientId);
@@ -24,6 +27,12 @@ public class LobbyPlayer : NetworkBehaviour
             PlayerName.Value = GameInstanceManager.Instance.CurrentPlayer.Name;
             IsReady.Value = false;
         }
+        OnPlayerSpawned?.Invoke(this);
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        OnPlayerDespawned?.Invoke(OwnerClientId);
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
