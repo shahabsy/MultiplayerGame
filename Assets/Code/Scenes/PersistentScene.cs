@@ -45,6 +45,10 @@ public class PersistentScene : MonoBehaviour
         {
             GameInstanceManager.Instance.InitCamera(MainCamera);
             GameInstanceManager.Instance.InitLoadingScreen(LoadingTextContainer);
+
+            // Ensure the player data exists before any network player spawns
+            GameInstanceManager.Instance.InitPlayer();
+            Debug.Log($"PersistentScene: Player initialized with name {GameInstanceManager.Instance.CurrentPlayer.Name}");
         }
         StartCoroutine(LoadMainMenu());
 
