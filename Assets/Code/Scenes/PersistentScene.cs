@@ -48,7 +48,7 @@ public class PersistentScene : MonoBehaviour
 
             // Ensure the player data exists before any network player spawns
             GameInstanceManager.Instance.InitPlayer();
-            Debug.Log($"PersistentScene: Player initialized with name {GameInstanceManager.Instance.CurrentPlayer.Name}");
+            Debug.Log($"PersistentScene: Player initialized with name {GameInstanceManager.Instance.CurrentPlayer.DisplayName}");
         }
         StartCoroutine(LoadMainMenu());
 
@@ -67,7 +67,7 @@ public class PersistentScene : MonoBehaviour
             LoadingTextContainer.SetActive(true);
         }
 
-        SceneManager.LoadSceneAsync("MissionControlMenu");
+        //SceneManager.LoadSceneAsync("MissionControlMenu");
         if (GameInstanceManager.Instance != null)
         {
             GameInstanceManager.Instance.HideLoadingScreen();

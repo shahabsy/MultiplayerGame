@@ -1,0 +1,52 @@
+{
+  "playerProfiles": [
+    {
+      "id": "default_player",
+      "displayName": "Player",
+      "icon": "player_icon_default",
+      "teamId": "team_blue",
+      "isReady": false,
+      "defaultStats": {
+        "health": 100,
+        "speed": 5,
+        "damage": 10,
+        "defense": 5
+      },
+      "unlockedAbilities": ["basic_move", "basic_attack"],
+      "progression": {
+        "level": 1,
+        "experience": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "totalDeaths": 0
+      },
+      "networkData": {
+        "syncPosition": true,
+        "syncStats": true,
+        "syncReadyState": true
+      }
+    }
+  ],
+  "playerSettings": {
+    "audioVolume": 0.8,
+    "mouseSensitivity": 1.0,
+    "enableVoiceChat": true,
+    "networkQuality": "medium",
+    "keybinds": {
+      "moveForward": "W",
+      "moveBackward": "S",
+      "moveLeft": "A",
+      "moveRight": "D",
+      "attack": "Mouse0",
+      "useAbility": "E",
+      "toggleReady": "R",
+      "voiceChat": "V"
+    }
+  },
+  "multiplayerSettings": {
+    "maxPlayers": 8,
+    "teamAssign": "auto",
+    "readySystem": true,
+    "playerTimeout": 30
+  }
+}
