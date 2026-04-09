@@ -10,9 +10,14 @@ public class MissionControlMenuScene : MonoBehaviour
     [Header("Buttons")]
     public Button CreateGameBtn;
     public Button JoinGameBtn;
+    public Transform PlayerProfilePanel;
 
     [Header("Multiplayer")]
     public MultiplayerConnectionManager MultiplayerManager;
+    private void Awake()
+    {
+        PlayerProfilePanel.gameObject.SetActive(true);
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -41,6 +46,7 @@ public class MissionControlMenuScene : MonoBehaviour
         if (MultiplayerManager != null)
         {
             MultiplayerManager.HostGame();
+            
         }
         else
         {
@@ -59,6 +65,7 @@ public class MissionControlMenuScene : MonoBehaviour
     private void OnHostStarted()
     {
         //SceneManager.LoadScene("Lobby");
+        PlayerProfilePanel.gameObject.SetActive(false);
         NetworkManager.Singleton.SceneManager.LoadScene("Lobby", LoadSceneMode.Single);
     }
     private void OnClientJoined()
