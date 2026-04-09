@@ -1,0 +1,25 @@
+{
+    "GUID": "3f2a1b4c-5d6e-7f8a-9b0c-1d2e3f4a5b6c",
+    "Name": "EpicGamer",
+    "IsReadyToStartGame": false,
+    "Flags": {
+        "PlayerMission": true,
+        "TutorialCompleted": false
+    },
+    "Level": 42,
+    "RankTier": 7,
+    "RankPoints": 1250,
+    "AvatarUrl": "https://example.com/avatars/player123.png",
+    "EquippedSkinId": 5,
+    "OwnedOutfitIds": [1, 3, 5, 7],
+    "EquippedSkillIds": [101, 102, 203],
+    "OwnedEmoteIds": [1001, 1005],
+    "Gender": 1,
+    "UiLanguage": "en",
+    "MatchTags": ["casual", "coop"],
+    "SocialTags": ["friendly", "teamplayer"],
+    "TotalKills": 1337,
+    "TotalWins": 245,
+    "HeadshotRate": 0.68,
+    "HighestSeasonRank": 9
+}
